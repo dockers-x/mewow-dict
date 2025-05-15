@@ -73,27 +73,38 @@ async fn static_handler(req: HttpRequest) -> HttpResponse {
 fn get_dict_files() -> Vec<String> {
     let config = Config::load().unwrap_or_default();
     let mut files = Vec::new();
-
+    
+    println!("Searching for MDX files in directories:");
     for dir in config.get_all_dict_dirs() {
-        if let Ok(entries) = std::fs::read_dir(dir) {
+        println!("Checking directory: {:?}", dir);
+        if let Ok(entries) = std::fs::read_dir(&dir) {
             for entry in entries.flatten() {
                 if let Some(ext) = entry.path().extension() {
                     if ext == "mdx" {
                         if let Some(path) = entry.path().to_str() {
+                            println!("Found MDX file: {}", path);
                             files.push(path.to_string());
                         }
                     }
                 }
             }
+        } else {
+            println!("Failed to read directory: {:?}", dir);
         }
     }
-
+    
+    println!("Total MDX files found: {}", files.len());
     files
 }
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();
+
+    println!("Environment variables:");
+    for (key, value) in env::vars() {
+        println!("{} = {}", key, value);
+    }
 
     let dict_files = get_dict_files();
     if dict_files.is_empty() {

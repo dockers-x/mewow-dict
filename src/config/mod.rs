@@ -10,42 +10,88 @@ pub struct Config {
     pub user_dict_dirs: Vec<PathBuf>,
 }
 
+fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    PathBuf::from(path)
+}
+
 impl Default for Config {
     fn default() -> Self {
         let mut builtin_dict_dirs = Vec::new();
         let mut user_dict_dirs: Vec<PathBuf> = Vec::new();
 
+        // 首先检查 BUILTIN_DICT_DIR
+        if let Ok(builtin_dict_dir) = env::var("BUILTIN_DICT_DIR") {
+            println!("BUILTIN_DICT_DIR env var: {}", builtin_dict_dir);
+            let path = expand_tilde(&builtin_dict_dir);
+            println!("Expanded builtin dict dir: {:?}", path);
+            if path.exists() {
+                println!("Builtin dict dir exists");
+                if let Ok(entries) = std::fs::read_dir(&path) {
+                    let mdx_files: Vec<_> = entries
+                        .filter_map(|e| e.ok())
+                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "mdx"))
+                        .collect();
+                    println!("Found {} MDX files in builtin dict dir", mdx_files.len());
+                }
+                builtin_dict_dirs.push(path);
+            } else {
+                println!("Builtin dict dir does not exist");
+            }
+        } else {
+            println!("BUILTIN_DICT_DIR not set");
+        }
+
+        // 然后检查 CARGO_MANIFEST_DIR
         if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
             let manifest_dir = manifest_dir.clone();
             let mut path: PathBuf = manifest_dir.clone().into();
             path.push("resources/mdx");
+            println!("Checking manifest mdx dir: {:?}", path);
             if path.exists() {
-                builtin_dict_dirs.push(path.clone());
+                println!("Found manifest mdx dir");
                 builtin_dict_dirs.push(path);
             }
-
-            if let Ok(builtin_dict_dir) = env::var("BUILTIN_DICT_DIR") {
-                let path = PathBuf::from(builtin_dict_dir);
-                if path.exists() {
-                    builtin_dict_dirs.push(path);
-                }
-            }
-
+            
             // Add resources/user_mdx if it exists
             let mut user_mdx_path: PathBuf = manifest_dir.into();
             user_mdx_path.push("resources/user_mdx");
+            println!("Checking user mdx dir: {:?}", user_mdx_path);
             if user_mdx_path.exists() {
+                println!("Found user mdx dir");
                 user_dict_dirs.push(user_mdx_path);
             }
         }
 
         // Add USER_DICT_DIR if it exists
         if let Ok(user_dict_dir) = env::var("USER_DICT_DIR") {
-            let path = PathBuf::from(user_dict_dir);
+            println!("USER_DICT_DIR env var: {}", user_dict_dir);
+            let path = expand_tilde(&user_dict_dir);
+            println!("Expanded user dict dir: {:?}", path);
             if path.exists() {
+                println!("User dict dir exists");
+                if let Ok(entries) = std::fs::read_dir(&path) {
+                    let mdx_files: Vec<_> = entries
+                        .filter_map(|e| e.ok())
+                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "mdx"))
+                        .collect();
+                    println!("Found {} MDX files in user dict dir", mdx_files.len());
+                }
                 user_dict_dirs.push(path);
+            } else {
+                println!("User dict dir does not exist");
             }
+        } else {
+            println!("USER_DICT_DIR not set");
         }
+
+        println!("Final builtin dict dirs: {:?}", builtin_dict_dirs);
+        println!("Final user dict dirs: {:?}", user_dict_dirs);
+        
         Self {
             builtin_dict_dirs,
             user_dict_dirs,
