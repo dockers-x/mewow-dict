@@ -127,26 +127,25 @@ jobs:
           name: mewow-dict-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/${{ matrix.exe }}
 
-      # Create a temporary directory for the release package
-      - name: Create release package directory
+      # Copy resources to target directory
+      - name: Copy resources to target directory
         run: |
-          mkdir -p release-package
-          cp target/${{ matrix.target }}/release/${{ matrix.exe }} release-package/
-          cp -r resources release-package/
+          mkdir -p target/${{ matrix.target }}/release/resources/
+          cp -r resources/* target/${{ matrix.target }}/release/resources/
 
       - name: Zip Release
         uses: TheDoctor0/zip-release@0.7.5
         with:
           type: zip
           filename: mewow-dict-${{ matrix.target }}.zip
-          directory: ./
-          path: release-package
+          directory: target/${{ matrix.target }}/release/
+          path: ${{ matrix.exe }} resources/
 
       - name: Publish
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: mewow-dict-${{ matrix.target }}.zip
+          files: target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip
           generate_release_notes: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
