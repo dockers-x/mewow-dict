@@ -27,6 +27,127 @@ jobs:
       - run: rustup default stable
       - run: cargo test
 
+  release:
+    name: Cross build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            exe: mewow-dict
+            cross: false
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            exe: mewow-dict
+            cross: true
+
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabi
+            exe: mewow-dict
+            cross: true
+
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabihf
+            exe: mewow-dict
+            cross: true
+
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-musleabihf
+            exe: mewow-dict
+            cross: true
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: mewow-dict.exe
+            cross: false
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            exe: mewow-dict
+            cross: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          # Since rust 1.72, some platforms are tier 3
+          toolchain: 1.86.0
+          default: true
+
+      - name: Install OpenSSL
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install pkg-config libssl-dev
+      - name: Install OpenSSL
+        if: matrix.os == 'macos-latest'
+        run: brew install openssl@3
+
+      # Native build
+      - name: Install target
+        if: matrix.cross == false
+        run: rustup target add ${{ matrix.target }}
+      - name: Run tests
+        if: matrix.cross == false
+        run: cargo test --release --target ${{ matrix.target }} --verbose
+      - name: Build release
+        if: matrix.cross == false
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Cross build
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install --version 0.2.5 cross
+      - name: Run tests
+        if: matrix.cross
+        run: cross test --release --target ${{ matrix.target }} --verbose  --no-default-features
+      - name: Build release
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }}  --no-default-features
+
+      - name: Run UPX
+        # Upx may not support some platforms. Ignore the errors
+        continue-on-error: true
+        # Disable upx for mips. See https://github.com/upx/upx/issues/387
+        if: matrix.os == 'ubuntu-latest' && !contains(matrix.target, 'mips')
+        uses: crazy-max/ghaction-upx@v1
+        with:
+          version: v4.0.2
+          files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+          args: -q --best --lzma
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mewow-dict-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+
+      # Create a temporary directory for the release package
+      - name: Create release package directory
+        run: |
+          mkdir -p release-package
+          cp target/${{ matrix.target }}/release/${{ matrix.exe }} release-package/
+          cp -r resources release-package/
+
+      - name: Zip Release
+        uses: TheDoctor0/zip-release@0.7.5
+        with:
+          type: zip
+          filename: mewow-dict-${{ matrix.target }}.zip
+          directory: ./
+          path: release-package
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: mewow-dict-${{ matrix.target }}.zip
+          generate_release_notes: true
+          draft: true
+
   docker:
     needs: test
     if: github.event_name != 'pull_request'
@@ -150,7 +271,7 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
-  release:
+  finalize-release:
     runs-on: ubuntu-latest
     needs: docker
     if: github.ref_type == 'tag'

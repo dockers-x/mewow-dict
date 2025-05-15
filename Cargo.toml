@@ -1,6 +1,6 @@
 [package]
 name = "mewow-dict"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["zhimoe","czyt"]
 edition = "2021"
 
