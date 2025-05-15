@@ -100,12 +100,6 @@ fn get_dict_files() -> Vec<String> {
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();
-
-    println!("Environment variables:");
-    for (key, value) in env::vars() {
-        println!("{} = {}", key, value);
-    }
-
     let dict_files = get_dict_files();
     if dict_files.is_empty() {
         println!("Warning: No MDX files found in configured directories");
@@ -119,7 +113,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|_| "8181".to_string())
         .parse::<u16>()
         .unwrap_or(8181);
-
+    println!("mewow-dict version{}",env!("CARGO_PKG_VERSION"));
     println!("App serving on http://{}:{}", host, port);
 
     HttpServer::new(|| {
