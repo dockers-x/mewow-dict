@@ -108,6 +108,8 @@ pub fn get_embedded_file(path: &str) -> Option<&'static [u8]> {
         "/O8C.css" => Some(include_bytes!("../../assets/web/O8C.css")),
         "/hycd_3rd.css" => Some(include_bytes!("../../assets/web/hycd_3rd.css")),
         "/hycd_3rd_img.css" => Some(include_bytes!("../../assets/web/hycd_3rd_img.css")),
+        "/hycd_3rd_img.css" => Some(include_bytes!("../../assets/web/hycd_3rd_img.css")),
+        "/sound.png" => Some(include_bytes!("../../assets/web/sound.png")),
         _ => {
             println!("No embedded file found for path: {}", path);
             None

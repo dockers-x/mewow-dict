@@ -1,12 +1,12 @@
-use std::error::Error;
 use std::env;
+use std::error::Error;
 use std::path::PathBuf;
 
 use actix_files;
-use actix_web::{middleware, web, App, HttpServer, HttpResponse, HttpRequest};
+use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
 use pretty_env_logger;
 
-use crate::config::{ Config, get_embedded_file};
+use crate::config::{get_embedded_file, Config};
 use crate::handlers::{handle_lucky, handle_query};
 use crate::indexing::indexing;
 
@@ -23,40 +23,32 @@ fn app_config(config: &mut web::ServiceConfig) {
         web::scope("")
             .service(web::resource("/query").route(web::post().to(handle_query)))
             .service(web::resource("/lucky").route(web::get().to(handle_lucky)))
-            .service(
-                web::resource("/{tail:.*}").route(web::get().to(static_handler))
-            ),
+            .service(web::resource("/{tail:.*}").route(web::get().to(static_handler))),
     );
 }
 
 async fn static_handler(req: HttpRequest) -> HttpResponse {
     let path = req.path();
-    let normalized_path = if path == "/" {
-        "/index.html"
-    } else {
-        path
-    };
+    let normalized_path = if path == "/" { "/index.html" } else { path };
 
     println!("Requested path: {}", normalized_path);
 
     // 只允许用户提供 CSS 文件
     if normalized_path.ends_with(".css") {
-        if let Some(user_dir) = crate::config::user_static_path() {
+        if let Some(user_dir) = config::user_static_path() {
             let file_path = user_dir.join(&normalized_path[1..]); // 去掉开头的'/'
             println!("Looking for user CSS at: {:?}", file_path);
             if file_path.exists() && file_path.is_file() {
                 if let Ok(content) = std::fs::read(&file_path) {
                     println!("Found user CSS file");
-                    return HttpResponse::Ok()
-                        .content_type("text/css")
-                        .body(content);
+                    return HttpResponse::Ok().content_type("text/css").body(content);
                 }
             }
         }
     }
 
     // 其他所有资源都使用内置的
-    if let Some(content) = crate::config::get_embedded_file(normalized_path) {
+    if let Some(content) = get_embedded_file(normalized_path) {
         println!("Serving embedded file: {}", normalized_path);
         let content_type = if normalized_path.ends_with(".css") {
             "text/css"
@@ -66,6 +58,8 @@ async fn static_handler(req: HttpRequest) -> HttpResponse {
             "image/x-icon"
         } else if normalized_path.ends_with(".js") {
             "application/javascript"
+        } else if normalized_path.ends_with(".png") {
+            "image/png"
         } else {
             "application/octet-stream"
         };
@@ -79,7 +73,7 @@ async fn static_handler(req: HttpRequest) -> HttpResponse {
 fn get_dict_files() -> Vec<String> {
     let config = Config::load().unwrap_or_default();
     let mut files = Vec::new();
-    
+
     for dir in config.get_all_dict_dirs() {
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
@@ -93,7 +87,7 @@ fn get_dict_files() -> Vec<String> {
             }
         }
     }
-    
+
     files
 }
 
