@@ -129,6 +129,7 @@ jobs:
 
       # Copy resources to target directory and create zip manually
       - name: Create release package with resources
+        shell: bash
         run: |
           # Create temp directory for the package
           mkdir -p release-pkg
@@ -139,8 +140,8 @@ jobs:
           
           # Create zip file
           cd release-pkg
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            powershell Compress-Archive -Path * -DestinationPath ../target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            powershell -Command "Compress-Archive -Path * -DestinationPath ../target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip -Force"
           else
             zip -r ../target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip *
           fi
