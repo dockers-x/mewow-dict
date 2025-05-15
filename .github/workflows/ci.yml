@@ -127,19 +127,27 @@ jobs:
           name: mewow-dict-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/${{ matrix.exe }}
 
-      # Copy resources to target directory
-      - name: Copy resources to target directory
+      # Copy resources to target directory and create zip manually
+      - name: Create release package with resources
         run: |
-          mkdir -p target/${{ matrix.target }}/release/resources/
-          cp -r resources/* target/${{ matrix.target }}/release/resources/
-
-      - name: Zip Release
-        uses: TheDoctor0/zip-release@0.7.5
-        with:
-          type: zip
-          filename: mewow-dict-${{ matrix.target }}.zip
-          directory: target/${{ matrix.target }}/release/
-          path: ${{ matrix.exe }} resources/
+          # Create temp directory for the package
+          mkdir -p release-pkg
+          
+          # Copy executable and resources
+          cp target/${{ matrix.target }}/release/${{ matrix.exe }} release-pkg/
+          cp -r resources release-pkg/
+          
+          # Create zip file
+          cd release-pkg
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            powershell Compress-Archive -Path * -DestinationPath ../target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip
+          else
+            zip -r ../target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip *
+          fi
+          
+          # List created zip for debugging
+          cd ..
+          ls -la target/${{ matrix.target }}/release/mewow-dict-${{ matrix.target }}.zip || echo "Zip file not created"
 
       - name: Publish
         uses: softprops/action-gh-release@v2
