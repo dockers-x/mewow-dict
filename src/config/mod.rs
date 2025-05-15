@@ -47,7 +47,7 @@ impl Config {
 
     pub fn config_path() -> Result<PathBuf> {
         let mut path = Self::user_config_dir()?;
-        path.push("mdict-rs");
+        path.push("mewow-dict");
         fs::create_dir_all(&path)?;
         path.push("config.json");
         Ok(path)

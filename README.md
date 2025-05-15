@@ -1,24 +1,21 @@
-# mdict-rs
-> 基于[mdict-rs](https://github.com/zhimoe/mdict-rs) 修改
+# mewow-dict
+> base on [mdict-rs](https://github.com/zhimoe/mdict-rs) 
 
 a simple web dictionary write in rust, base on mdx format dictionary file.
 it's at an early stage of development, now only support mdx version 2.0 with encrypted=2 or 0
 
 ## usage
 
-1. put your mdx file in `resources/mdx/en` folder ando config `src/config/mod.rs`
+1. put your mdx file in `resources/mdx`
 2. if your mdx file has separate css file, put it in `resources/static/` folder
 3. run
 
 ```bash
-cargo run --bin mdict-rs
+cargo run --bin mewow-dict
 # now open your chrome, and search
 # http://localhost:8181
 ``` 
 
-## screenshot
-
-![screenshot](screenshot.jpg)
 
 ## 参考
 

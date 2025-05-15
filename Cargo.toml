@@ -1,7 +1,7 @@
 [package]
-name = "mdict-rs"
-version = "0.1.0"
-authors = ["zhimoe"]
+name = "mewow-dict"
+version = "0.1.1"
+authors = ["zhimoe","czyt"]
 edition = "2021"
 
 
