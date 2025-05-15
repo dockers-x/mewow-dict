@@ -1,7 +1,16 @@
-FROM rust:1.75-slim as builder
+FROM rust:latest as builder
 
 WORKDIR /usr/src/mdict-rs
+COPY Cargo.toml Cargo.lock ./
+# 创建一个空的main.rs来构建依赖
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# 现在复制实际的源代码
 COPY . .
+# 重新构建项目
 RUN cargo build --release
 
 FROM debian:bookworm-slim

@@ -1,37 +1,206 @@
-main {
-    min-height: calc(100vh - 50px);
+@import url("https://fontsapi.zeoseven.com/442/main/result.css");
+/* 使用苹果系统字体 */
+:root {
+    --system-ui: -apple-system, BlinkMacSystemFont,"Maple Mono NF CN" ,"SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --primary-color: #007AFF;
+    --background-color: #F5F5F7;
+    --text-color: #1D1D1F;
+    --border-radius: 12px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--system-ui);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    padding: 2rem;
+}
+
+header {
+    text-align: center;
+    margin: 3rem auto 0 auto;
+    display: block;
+}
+
+h1 {
+    display: inline-block;
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, #007AFF, #5856D6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+    letter-spacing: 2px;
+}
+
+.search-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
+}
+
+.search-box {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    max-width: 600px;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background: white;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.lucky-btn {
+    padding: 0 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: white;
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.lucky-btn:hover {
+    background: #0066CC;
+    transform: translateY(-1px);
+}
+
+.result-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    min-height: 300px;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #86868B;
+    font-size: 1.1rem;
 }
 
 footer {
-    height: 50px;
     text-align: center;
-    font-family: consolas, "fira code", monospace;
-    font-size: 10px;
+    margin-top: 3rem;
+    color: #86868B;
+    font-size: 0.9rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-#top-area {
-    text-align: center;
-    /* todo: 置顶不随页面滚动 */
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .search-box {
+        flex-direction: column;
+    }
+
+    .lucky-btn {
+        width: 100%;
+        padding: 1rem;
+    }
 }
 
-h1, h2, h3 {
-    font-family: "Fira Code", monospace, "PingFang SC", "Microsoft YaHei";
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-input, #lucky-btn {
-    width: 600px;
-    height: 50px;
-    border-radius: 3px;
-    outline-style: none;
-    border: 1px solid #e8c49a;
-    padding: 8px;
-    vertical-align: middle; /* 解决input和button上下错位问题 */
-    font-size: 16px;
-    font-family: "Fira Code", monospace, "PingFang SC", "Microsoft YaHei";
+main {
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 
-#lucky-btn {
-    width: 100px;
+.result-container.hidden {
+    min-height: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.headword, .hw, .entry .word, .top-g .word {
+    display: inline-block;
+    font-size: 1.3rem;
     font-weight: bold;
-    border: 1px solid #e8c49a;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.1em 0.5em;
+    line-height: 1.4;
+    margin-bottom: 0.5em;
+    margin-top: 0.5em;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.dict-block {
+    margin-bottom: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    background: #fff;
+    padding: 1.2rem 1.5rem;
+}
+
+.dict-source {
+    display: inline-block;
+    font-size: 0.95rem;
+    color: #888;
+    background: #f2f2f7;
+    border-radius: 6px;
+    padding: 0.2em 0.8em;
+    margin-bottom: 0.7em;
+    margin-right: 1em;
+    font-weight: 500;
+    letter-spacing: 1px;
 }
