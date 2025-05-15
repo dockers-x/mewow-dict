@@ -1,6 +1,4 @@
 牛津高阶英汉双解词典（第9版）.mdx filter=lfs diff=lfs merge=lfs -text
-牛津高阶英汉双解词典（第9版）.mdx.db filter=lfs diff=lfs merge=lfs -text
 牛津高阶英汉双解词典（第9版）.mdd filter=lfs diff=lfs merge=lfs -text
 韦氏高阶英汉双解词典v3.mdd filter=lfs diff=lfs merge=lfs -text
-韦氏高阶英汉双解词典v3.mdx.db filter=lfs diff=lfs merge=lfs -text
 韦氏高阶英汉双解词典v3.mdx filter=lfs diff=lfs merge=lfs -text
