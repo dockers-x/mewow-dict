@@ -1,9 +1,20 @@
 FROM rust:latest AS builder
 
+# Install git-lfs
+RUN apt-get update && \
+    apt-get install -y git-lfs && \
+    git lfs install
+
 WORKDIR /usr/src/mdict-rs
 
 # Copy the source code first
 COPY . .
+
+# Pull LFS files explicitly
+RUN git lfs pull
+
+# List the dictionary files to verify they exist
+RUN ls -la resources/mdx || echo "Dictionary directory not found"
 
 # Build the application
 RUN cargo build --release
@@ -23,7 +34,8 @@ COPY --from=builder /usr/src/mdict-rs/resources/static /app/static
 RUN mkdir -p /app/dicts/builtin /app/dicts/user
 
 # Copy the large dictionary files from Git LFS
-COPY --from=builder /usr/src/mdict-rs/resources/mdx /app/dicts/builtin
+COPY --from=builder /usr/src/mdict-rs/resources/mdx/* /app/dicts/builtin/
+RUN ls -la /app/dicts/builtin || echo "No dictionaries were copied"
 
 ENV RUST_LOG=info
 ENV STATIC_PATH=/app/static
