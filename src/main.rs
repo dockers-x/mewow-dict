@@ -1,10 +1,12 @@
 use std::error::Error;
+use std::env;
+use std::path::PathBuf;
 
 use actix_files;
 use actix_web::{middleware, web, App, HttpServer};
 use pretty_env_logger;
 
-use crate::config::{static_path, MDX_FILES};
+use crate::config::{static_path, Config};
 use crate::handlers::{handle_lucky, handle_query};
 use crate::indexing::indexing;
 
@@ -29,20 +31,53 @@ fn app_config(config: &mut web::ServiceConfig) {
     );
 }
 
+fn get_dict_files() -> Vec<String> {
+    let config = Config::load().unwrap_or_default();
+    let mut files = Vec::new();
+    
+    for dir in config.get_all_dict_dirs() {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                if let Some(ext) = entry.path().extension() {
+                    if ext == "mdx" {
+                        if let Some(path) = entry.path().to_str() {
+                            files.push(path.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    files
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();
 
-    indexing(MDX_FILES, false);
+    let dict_files = get_dict_files();
+    if dict_files.is_empty() {
+        println!("Warning: No MDX files found in configured directories");
+    } else {
+        println!("Found {} MDX files", dict_files.len());
+        indexing(&dict_files, false);
+    }
 
-    println!("app serve on http://127.0.0.1:8181");
+    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let port = env::var("PORT")
+        .unwrap_or_else(|_| "8181".to_string())
+        .parse::<u16>()
+        .unwrap_or(8181);
+
+    println!("App serving on http://{}:{}", host, port);
 
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
             .configure(app_config)
     })
-    .bind(("127.0.0.1", 8181))?
+    .bind((host, port))?
     .run()
     .await
     .map_err(|e| Box::new(e) as Box<dyn Error>)

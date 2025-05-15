@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mdict:
+    build: .
+    ports:
+      - "8181:8080"
+    volumes:
+      - ./resources/mdx:/app/dicts/builtin
+      - ./resources/static:/app/static
+      - mdict_user_dicts:/app/dicts/user
+    environment:
+      - RUST_LOG=info
+      - HOST=0.0.0.0
+      - PORT=8080
+
+volumes:
+  mdict_user_dicts:
+    driver: local 

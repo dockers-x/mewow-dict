@@ -13,11 +13,18 @@ function queryMdx(word) {
         data: {'word': word},
         dataType: 'html',
         success: function (data) {
-            if (data !== '') {
+            if (data === 'not found') {
+                $('#mdx-resp').html('未找到相关释义').show();
+            } else if (data.startsWith('Error:')) {
+                $('#mdx-resp').html(data).show();
+            } else if (data !== '') {
                 $('#mdx-resp').html(data).show();
             } else {
                 $('#mdx-resp').hide();
             }
+        },
+        error: function(xhr, status, error) {
+            $('#mdx-resp').html('查询出错：' + error).show();
         }
     });
 }
@@ -69,17 +76,24 @@ $(window).bind('keyup keydown', function (e) {
 
 // 试试手气按钮
 $(document).on('click', '#lucky-btn', function (e) {
+    $('#mdx-resp').html('查询中...');
     $.ajax({
         url: './lucky',
         type: 'GET',
         dataType: 'html',
         success: function (data) {
-            if (data !== '') {
+            if (data === 'not found') {
+                $('#mdx-resp').html('未找到相关释义').show();
+            } else if (data.startsWith('Error:')) {
+                $('#mdx-resp').html(data).show();
+            } else if (data !== '') {
                 $('#mdx-resp').html(data).show();
             } else {
                 $('#mdx-resp').hide();
             }
-            // $('#word').val(parserWordFromResp(data))
+        },
+        error: function(xhr, status, error) {
+            $('#mdx-resp').html('查询出错：' + error).show();
         }
     });
 });
