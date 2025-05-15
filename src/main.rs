@@ -3,10 +3,10 @@ use std::env;
 use std::path::PathBuf;
 
 use actix_files;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer, HttpResponse, HttpRequest};
 use pretty_env_logger;
 
-use crate::config::{static_path, Config};
+use crate::config::{ Config, get_embedded_file};
 use crate::handlers::{handle_lucky, handle_query};
 use crate::indexing::indexing;
 
@@ -23,12 +23,57 @@ fn app_config(config: &mut web::ServiceConfig) {
         web::scope("")
             .service(web::resource("/query").route(web::post().to(handle_query)))
             .service(web::resource("/lucky").route(web::get().to(handle_lucky)))
-            // .wrap(middleware::DefaultHeaders::new().add(("Cache-Control", "max-age=86400")))
             .service(
-                actix_files::Files::new("/", static_path().unwrap().to_str().unwrap())
-                    .index_file("index.html"),
-            ), // static file 必须放在最后，否则会屏蔽其他route
+                web::resource("/{tail:.*}").route(web::get().to(static_handler))
+            ),
     );
+}
+
+async fn static_handler(req: HttpRequest) -> HttpResponse {
+    let path = req.path();
+    let normalized_path = if path == "/" {
+        "/index.html"
+    } else {
+        path
+    };
+
+    println!("Requested path: {}", normalized_path);
+
+    // 只允许用户提供 CSS 文件
+    if normalized_path.ends_with(".css") {
+        if let Some(user_dir) = crate::config::user_static_path() {
+            let file_path = user_dir.join(&normalized_path[1..]); // 去掉开头的'/'
+            println!("Looking for user CSS at: {:?}", file_path);
+            if file_path.exists() && file_path.is_file() {
+                if let Ok(content) = std::fs::read(&file_path) {
+                    println!("Found user CSS file");
+                    return HttpResponse::Ok()
+                        .content_type("text/css")
+                        .body(content);
+                }
+            }
+        }
+    }
+
+    // 其他所有资源都使用内置的
+    if let Some(content) = crate::config::get_embedded_file(normalized_path) {
+        println!("Serving embedded file: {}", normalized_path);
+        let content_type = if normalized_path.ends_with(".css") {
+            "text/css"
+        } else if normalized_path.ends_with(".html") {
+            "text/html"
+        } else if normalized_path.ends_with(".ico") {
+            "image/x-icon"
+        } else if normalized_path.ends_with(".js") {
+            "application/javascript"
+        } else {
+            "application/octet-stream"
+        };
+        HttpResponse::Ok().content_type(content_type).body(content)
+    } else {
+        println!("404 Not Found: {}", normalized_path);
+        HttpResponse::NotFound().finish()
+    }
 }
 
 fn get_dict_files() -> Vec<String> {

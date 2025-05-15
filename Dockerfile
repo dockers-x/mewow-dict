@@ -38,7 +38,7 @@ COPY --from=builder /usr/src/mewow-dict/resources/mdx/* /app/dicts/builtin/
 RUN ls -la /app/dicts/builtin || echo "No dictionaries were copied"
 
 ENV RUST_LOG=info
-ENV STATIC_PATH=/app/static
+ENV USER_STATIC_PATH=/app/static
 ENV BUILTIN_DICT_DIR=/app/dicts/builtin
 ENV USER_DICT_DIR=/app/dicts/user
 ENV HOST=0.0.0.0

@@ -1,8 +1,8 @@
-use std::env;
-use std::path::PathBuf;
-use std::fs;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -23,14 +23,14 @@ impl Default for Config {
                 builtin_dict_dirs.push(path.clone());
                 builtin_dict_dirs.push(path);
             }
-            
+
             if let Ok(builtin_dict_dir) = env::var("BUILTIN_DICT_DIR") {
                 let path = PathBuf::from(builtin_dict_dir);
                 if path.exists() {
                     builtin_dict_dirs.push(path);
                 }
             }
-            
+
             // Add resources/user_mdx if it exists
             let mut user_mdx_path: PathBuf = manifest_dir.into();
             user_mdx_path.push("resources/user_mdx");
@@ -96,8 +96,25 @@ impl Config {
     }
 }
 
-pub fn static_path() -> Result<PathBuf> {
-    let mut path: PathBuf = env!("CARGO_MANIFEST_DIR").into();
-    path.push("resources/static");
-    Ok(path)
+pub fn get_embedded_file(path: &str) -> Option<&'static [u8]> {
+    match path {
+        "/" | "/index.html" => Some(include_bytes!("../../assets/web/index.html")),
+        "/index.js" => Some(include_bytes!("../../assets/web/index.js")),
+        "/index.css" => Some(include_bytes!("../../assets/web/index.css")),
+        "/favicon.ico" => Some(include_bytes!("../../assets/web/favicon.ico")),
+        "/jquery.min.js" => Some(include_bytes!("../../assets/web/jquery.min.js")),
+        "/hycd_3rd.js" => Some(include_bytes!("../../assets/web/hycd_3rd.js")),
+        "/LSC4.css" => Some(include_bytes!("../../assets/web/LSC4.css")),
+        "/O8C.css" => Some(include_bytes!("../../assets/web/O8C.css")),
+        "/hycd_3rd.css" => Some(include_bytes!("../../assets/web/hycd_3rd.css")),
+        "/hycd_3rd_img.css" => Some(include_bytes!("../../assets/web/hycd_3rd_img.css")),
+        _ => {
+            println!("No embedded file found for path: {}", path);
+            None
+        }
+    }
+}
+
+pub fn user_static_path() -> Option<PathBuf> {
+    env::var("USER_STATIC_PATH").ok().map(PathBuf::from)
 }
