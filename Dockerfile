@@ -1,15 +1,11 @@
-FROM rust:latest as builder
+FROM rust:latest AS builder
 
 WORKDIR /usr/src/mdict-rs
-COPY Cargo.toml Cargo.lock ./
-# Create an empty main.rs to build dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
 
-# Now copy the actual source code and build
+# Copy the source code first
 COPY . .
+
+# Build the application
 RUN cargo build --release
 
 FROM debian:bookworm-slim
