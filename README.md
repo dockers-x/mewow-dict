@@ -28,3 +28,4 @@ docker run -p 8181:8181 -v /path/to/your/mdx:/app/dicts/user -v /path/to/your/st
 + MDX analysis[mdict-analysis](https://bitbucket.org/xwang/mdict-analysis/src/master/)
 and a blog post [mdx-mdd-file-format](http://einverne.github.io/post/2018/08/mdx-mdd-file-format.html)
 + [free mdx download](https://mdict.org)
++ [wikit](https://github.com/ikey4u/wikit)
