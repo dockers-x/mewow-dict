@@ -7,14 +7,16 @@ use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
 use pretty_env_logger;
 
 use crate::config::{get_embedded_file, Config};
-use crate::handlers::{handle_lucky, handle_query};
+use crate::handlers::{handle_lucky, handle_query, handle_mdd_resource};
 use crate::indexing::indexing;
+use crate::mdd_manager::init_mdd_manager;
 
 mod config;
 mod handlers;
 mod indexing;
 mod lucky;
 mod mdict;
+mod mdd_manager;
 mod query;
 mod util;
 
@@ -23,6 +25,7 @@ fn app_config(config: &mut web::ServiceConfig) {
         web::scope("")
             .service(web::resource("/query").route(web::post().to(handle_query)))
             .service(web::resource("/lucky").route(web::get().to(handle_lucky)))
+            .service(web::resource("/mdd/{tail:.*}").route(web::get().to(handle_mdd_resource)))
             .service(web::resource("/{tail:.*}").route(web::get().to(static_handler))),
     );
 }
@@ -107,6 +110,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("Found {} MDX files", dict_files.len());
         indexing(&dict_files, false);
     }
+    
+    // Initialize MDD resource manager
+    println!("Loading MDD resource files...");
+    init_mdd_manager();
+    println!("MDD resource files loaded");
 
     let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("PORT")

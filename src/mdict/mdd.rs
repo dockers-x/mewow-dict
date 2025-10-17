@@ -5,25 +5,11 @@ use crate::mdict::keyblock::{
 use crate::mdict::recordblock::{parse_record_blocks, record_block_parser, RecordBlockSize};
 use nom::Parser;
 
-/// 一个record的定位信息：在buf(buf表示所有record_block的bytes)中的offset和在block解压后的offset
-/// draw with: https://asciiflow.com/#/
-//                   ◄──block_csize───►
-//                   ┌────────────────┐
-//            block  │                │
-//                   └────────────────┘
-//                   ▲
-//           block_start_in_buf
-//
-//                   ◄──── block_dsize ───────►
-//                   ┌───┬────────────┬───────┐
-//     block_decomp  │   │   record   │       │
-//                   └───┴────────────┴───────┘
-//                       ▲
-//           record_start_in_de_block
-//
+/// MDD file structure is similar to MDX, but stores resources (images, audio, etc.) instead of text
+/// The key difference is that records contain binary data instead of text definitions
 #[derive(Debug)]
-pub struct RecordOffsetInfo {
-    pub(crate) text: String,
+pub struct ResourceOffsetInfo {
+    pub(crate) path: String,
     // record所在block在buf的offset 截取block使用
     block_offset_in_buf: usize,
     // 解析block使用
@@ -34,35 +20,28 @@ pub struct RecordOffsetInfo {
     record_end_in_de_block: usize,
 }
 
-// todo: why can not be String?
 #[derive(Debug)]
-pub struct Record<'a> {
-    pub(crate) text: &'a str,
-    pub(crate) definition: String,
+#[allow(dead_code)]
+pub struct Resource {
+    pub(crate) path: String,
+    pub(crate) data: Vec<u8>,
 }
 
-/// MDX 详细结构见 https://bitbucket.org/xwang/mdict-analysis/src/master/MDX.svg
-/// MDX file 结构
-/// header: 得到 version encoding encrypted
-/// key block header: entry number and checksum
-/// key block size info: every key block compressed and decompressed size, for parse key block bytes
-/// key block bytes: 根据上面的key block info得到的（csize,dsize）解析得到 Entry list
-/// record header: record block size, entry number, record block info size, record block size
-/// record block size info: every record block compressed and decompressed size, 用于解析下面的record block
-/// record block bytes: entry and definition bytes, parsed by RecordEntry and RecordBlockSize
-/// record: 是一条释义
+/// MDD (Mdict Data) file parser for resource files
+/// Structure is similar to MDX but contains binary resources
 #[allow(dead_code)]
-pub struct Mdx {
-    pub records_offset: Vec<RecordOffsetInfo>,
+pub struct Mdd {
+    pub resources_offset: Vec<ResourceOffsetInfo>,
     pub record_block_buf: Vec<u8>,
     pub encoding: String,
     pub encrypted: String,
 }
 
-impl Mdx {
-    /// let data = include_bytes!("/file.mdx");
-    /// let mdx = Mdx::new(&data);
-    pub fn new(data: &[u8]) -> Mdx {
+impl Mdd {
+    /// Create a new MDD instance from raw bytes
+    /// let data = include_bytes!("/file.mdd");
+    /// let mdd = Mdd::new(&data);
+    pub fn new(data: &[u8]) -> Mdd {
         let (data, header) = parse_header(data).unwrap();
 
         let (data, kbh) = parse_key_block_header(data, &header).unwrap();
@@ -73,10 +52,10 @@ impl Mdx {
         let (data, record_blocks_size) = parse_record_blocks(data, &header).unwrap();
 
         //计算position耗时，一次计算就保存下来
-        let offset: Vec<RecordOffsetInfo> = records_offset(&entries, &record_blocks_size);
+        let offset: Vec<ResourceOffsetInfo> = resources_offset(&entries, &record_blocks_size);
 
-        Mdx {
-            records_offset: offset,
+        Mdd {
+            resources_offset: offset,
             record_block_buf: Vec::from(data),
             encoding: header.encoding,
             encrypted: header.encrypted,
@@ -84,42 +63,52 @@ impl Mdx {
     }
 
     #[allow(unused)]
-    pub fn entries(&self) -> impl Iterator<Item=&RecordOffsetInfo> {
-        return self.records_offset.iter();
+    pub fn entries(&self) -> impl Iterator<Item=&ResourceOffsetInfo> {
+        return self.resources_offset.iter();
     }
 
-    pub fn items(&self) -> impl Iterator<Item=Record<'_>> {
-        self.records_offset.iter().map(|rs| {
-            let def = self.find_definition(&rs);
-            Record {
-                text: &rs.text,
-                definition: def,
+    #[allow(dead_code)]
+    pub fn items(&self) -> impl Iterator<Item=Resource> + '_ {
+        self.resources_offset.iter().map(|rs| {
+            let data = self.find_resource(&rs);
+            Resource {
+                path: rs.path.clone(),
+                data,
             }
         })
     }
 
-    fn find_definition(&self, rs: &RecordOffsetInfo) -> String {
+    pub fn find_resource(&self, rs: &ResourceOffsetInfo) -> Vec<u8> {
         // block bytes with tail
         let block_buf = &self.record_block_buf[rs.block_offset_in_buf..];
 
         let (_, block_decompressed) =
             record_block_parser(rs.block_csize, rs.block_dsize).parse(block_buf).unwrap();
 
-        let record_decompressed =
+        let resource_data =
             &block_decompressed[rs.record_start_in_de_block..rs.record_end_in_de_block];
 
-        let def = String::from_utf8_lossy(record_decompressed).to_string();
+        return resource_data.to_vec();
+    }
 
-        return def;
+    pub fn get_resource_by_path(&self, path: &str) -> Option<Vec<u8>> {
+        // Normalize path - remove leading slash or backslash
+        let normalized_path = path.trim_start_matches('/').trim_start_matches('\\');
+        
+        // Find the resource with matching path (case-insensitive)
+        self.resources_offset.iter().find(|rs| {
+            let rs_path = rs.path.trim_start_matches('/').trim_start_matches('\\');
+            rs_path.eq_ignore_ascii_case(normalized_path)
+        }).map(|rs| self.find_resource(rs))
     }
 }
 
 /// bytes structure: buf -> block -> record(entry)
-fn records_offset(
+fn resources_offset(
     records_debuf_index: &Vec<RecordDeBufOffset>,
     record_blocks_size: &Vec<RecordBlockSize>,
-) -> Vec<RecordOffsetInfo> {
-    let mut positions: Vec<RecordOffsetInfo> = vec![];
+) -> Vec<ResourceOffsetInfo> {
+    let mut positions: Vec<ResourceOffsetInfo> = vec![];
     let mut i: usize = 0;
     let mut pre_blocks_dsize_sum = 0;
     let mut pre_blocks_csize_sum = 0;
@@ -143,8 +132,8 @@ fn records_offset(
                 record_end_in_de_block = block.dsize
             }
 
-            positions.push(RecordOffsetInfo {
-                text: record.text.to_string(),
+            positions.push(ResourceOffsetInfo {
+                path: record.text.to_string(),
                 block_offset_in_buf: pre_blocks_csize_sum,
                 block_csize: block.csize,
                 block_dsize: block.dsize,
